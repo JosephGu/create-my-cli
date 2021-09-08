@@ -1,5 +1,6 @@
 import arg from 'arg';
-
+import inquirer from 'inquirer';
+import {createProject} from './main';
 
 function parseArgumentsIntoOptions(rawArgs) {
     const args = arg(
@@ -24,7 +25,46 @@ function parseArgumentsIntoOptions(rawArgs) {
     }
 }
 
-export function cli(args) {
+async function promptForMissingOptions(options) {
+    const defaultTemplate = 'Javascript';
+    if (options.skipPrompts) {
+        return {
+            ...options,
+            template: options.template || defaultTemplate,
+        }
+    }
+
+    const questions = [];
+    if (!options.template) {
+        questions.push({
+            type: 'list',
+            name: 'template',
+            message: 'Please choose which project template to use',
+            choices: ['JavaScript', 'TypeScript'],
+            default: defaultTemplate
+        });
+    }
+
+    if (!options.git) {
+        questions.push({
+            type: 'confirm',
+            name: 'git',
+            message: 'initialzie a git repository?',
+            default: false,
+        })
+    }
+
+    const answer = await inquirer.prompt(questions);
+    return {
+        ...options,
+        template: options.template || answer.template,
+        git :options.git || answer.git,
+    }
+
+}
+
+export async function cli(args) {
     let options = parseArgumentsIntoOptions(args);
-    console.log(options);
+    options = await promptForMissingOptions(options);
+    createProject(options);
 }
